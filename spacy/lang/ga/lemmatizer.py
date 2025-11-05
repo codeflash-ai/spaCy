@@ -3,6 +3,29 @@ from typing import Dict, List, Tuple
 from ...pipeline import Lemmatizer
 from ...tokens import Token
 
+_PONC = {
+    "ḃ": "bh",
+    "ċ": "ch",
+    "ḋ": "dh",
+    "ḟ": "fh",
+    "ġ": "gh",
+    "ṁ": "mh",
+    "ṗ": "ph",
+    "ṡ": "sh",
+    "ṫ": "th",
+    "Ḃ": "BH",
+    "Ċ": "CH",
+    "Ḋ": "DH",
+    "Ḟ": "FH",
+    "Ġ": "GH",
+    "Ṁ": "MH",
+    "Ṗ": "PH",
+    "Ṡ": "SH",
+    "Ṫ": "TH",
+}
+
+_TRANSLATION_MAP = {ord(k): v for k, v in _PONC.items()}
+
 
 class IrishLemmatizer(Lemmatizer):
     # This is a lookup-based lemmatiser using data extracted from
@@ -131,32 +154,4 @@ def demutate(word: str, is_hpref: bool = False) -> str:
 
 
 def unponc(word: str) -> str:
-    # fmt: off
-    PONC = {
-        "ḃ": "bh",
-        "ċ": "ch",
-        "ḋ": "dh",
-        "ḟ": "fh",
-        "ġ": "gh",
-        "ṁ": "mh",
-        "ṗ": "ph",
-        "ṡ": "sh",
-        "ṫ": "th",
-        "Ḃ": "BH",
-        "Ċ": "CH",
-        "Ḋ": "DH",
-        "Ḟ": "FH",
-        "Ġ": "GH",
-        "Ṁ": "MH",
-        "Ṗ": "PH",
-        "Ṡ": "SH",
-        "Ṫ": "TH"
-    }
-    # fmt: on
-    buf = []
-    for ch in word:
-        if ch in PONC:
-            buf.append(PONC[ch])
-        else:
-            buf.append(ch)
-    return "".join(buf)
+    return word.translate(_TRANSLATION_MAP)
