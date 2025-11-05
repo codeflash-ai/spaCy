@@ -1519,8 +1519,7 @@ class Language:
         disable: Iterable[str] = ...,
         component_cfg: Optional[Dict[str, Dict[str, Any]]] = ...,
         n_process: int = ...,
-    ) -> Iterator[Doc]:
-        ...
+    ) -> Iterator[Doc]: ...
 
     @overload
     def pipe(  # noqa: F811
@@ -1532,8 +1531,7 @@ class Language:
         disable: Iterable[str] = ...,
         component_cfg: Optional[Dict[str, Dict[str, Any]]] = ...,
         n_process: int = ...,
-    ) -> Iterator[Tuple[Doc, _AnyContext]]:
-        ...
+    ) -> Iterator[Tuple[Doc, _AnyContext]]: ...
 
     def pipe(  # noqa: F811
         self,
@@ -1641,7 +1639,7 @@ class Language:
         batch_size: int,
     ) -> Iterator[Doc]:
         def prepare_input(
-            texts: Iterable[Union[str, Doc]]
+            texts: Iterable[Union[str, Doc]],
         ) -> Iterable[Tuple[Union[str, bytes], _AnyContext]]:
             # Serialize Doc inputs to bytes to avoid incurring pickling
             # overhead when they are passed to child processes. Also yield
@@ -1943,9 +1941,9 @@ class Language:
                         )
                     if "_sourced_vectors_hashes" not in nlp.meta:
                         nlp.meta["_sourced_vectors_hashes"] = {}
-                    nlp.meta["_sourced_vectors_hashes"][
-                        pipe_name
-                    ] = source_nlp_vectors_hashes[model]
+                    nlp.meta["_sourced_vectors_hashes"][pipe_name] = (
+                        source_nlp_vectors_hashes[model]
+                    )
                     # Delete from cache if listeners were replaced
                     if listeners_replaced:
                         del source_nlps[model]
@@ -2314,9 +2312,19 @@ class Language:
 
 
 def _replace_numpy_floats(meta_dict: dict) -> dict:
-    return convert_recursive(
-        lambda v: isinstance(v, numpy.floating), lambda v: float(v), dict(meta_dict)
-    )
+    def convert(obj):
+        if isinstance(obj, numpy.floating):
+            return float(obj)
+        elif isinstance(obj, dict):
+            return {k: convert(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert(v) for v in obj]
+        elif isinstance(obj, tuple):
+            return tuple(convert(v) for v in obj)
+        else:
+            return obj
+
+    return convert(dict(meta_dict))
 
 
 @dataclass
