@@ -8,9 +8,35 @@ from ..tokens import Doc, Span
 def iob_to_biluo(tags: Iterable[str]) -> List[str]:
     out: List[str] = []
     tags = list(tags)
-    while tags:
-        out.extend(_consume_os(tags))
-        out.extend(_consume_ent(tags))
+    n = len(tags)
+    i = 0
+    while i < n:
+        if tags[i] == "O":
+            start = i
+            while i < n and tags[i] == "O":
+                i += 1
+            out.extend(tags[start:i])
+            continue
+
+        tag = tags[i]
+        target_in = "I" + tag[1:]
+        target_last = "L" + tag[1:]
+        label = tag[2:]
+        length = 1
+        j = i + 1
+        while j < n and tags[j] in {target_in, target_last}:
+            length += 1
+            j += 1
+        if length == 1:
+            if len(label) == 0:
+                raise ValueError(Errors.E177.format(tag=tag))
+            out.append("U-" + label)
+        else:
+            out.append("B-" + label)
+            if length > 2:
+                out.extend([f"I-{label}"] * (length - 2))
+            out.append("L-" + label)
+        i = j
     return out
 
 
