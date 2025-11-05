@@ -52,10 +52,19 @@ def like_num(text):
     if text.isdigit():
         return True
     if text.count("/") == 1:
-        num, denom = text.split("/")
+        num, denom = text.split("/", 1)
         if num.isdigit() and denom.isdigit():
             return True
-    if any(char.lower() in _num_words for char in text):
+    # Optimize word membership test by using a set for O(1) lookups
+    # This avoids rebuilding the set every invocation and avoids .lower() which is a no-op for Korean.
+    # Building the set once and storing in a default argument is safe and fast.
+    _num_word_set = getattr(like_num, "_num_word_set", None)
+    if _num_word_set is None:
+        from spacy.lang.ko.lex_attrs import _num_words
+
+        _num_word_set = set(_num_words)
+        like_num._num_word_set = _num_word_set
+    if any(char in _num_word_set for char in text):
         return True
     return False
 
