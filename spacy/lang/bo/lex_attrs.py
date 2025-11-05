@@ -53,11 +53,19 @@ def like_num(text):
     text = text.replace(",", "").replace(".", "")
     if text.isdigit():
         return True
-    if text.count("/") == 1:
-        num, denom = text.split("/")
-        if num.isdigit() and denom.isdigit():
-            return True
-    if text in _num_words:
+    if "/" in text:
+        # Avoid unnecessary count if "/" not present at all
+        splits = text.split("/")
+        if len(splits) == 2:
+            num, denom = splits
+            if num.isdigit() and denom.isdigit():
+                return True
+    # Convert _num_words to a set for O(1) membership test on first use, cache on the function
+    if not hasattr(like_num, "_num_words_set"):
+        from spacy.lang.bo.lex_attrs import _num_words
+
+        like_num._num_words_set = set(_num_words)
+    if text in like_num._num_words_set:
         return True
     return False
 
