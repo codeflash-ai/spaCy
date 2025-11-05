@@ -36,20 +36,32 @@ def _consume_ent(tags: List[str]) -> List[str]:
     tag = tags.pop(0)
     target_in = "I" + tag[1:]
     target_last = "L" + tag[1:]
-    length = 1
-    while tags and tags[0] in {target_in, target_last}:
-        length += 1
-        tags.pop(0)
     label = tag[2:]
-    if length == 1:
-        if len(label) == 0:
-            raise ValueError(Errors.E177.format(tag=tag))
-        return ["U-" + label]
-    else:
+    if not label:
+        raise ValueError(Errors.E177.format(tag=tag))
+
+    # Linear scan index-based (no per-item pop, pop once)
+    n = len(tags)
+    length = 1
+    for i in range(n):
+        t = tags[i]
+        if t == target_in or t == target_last:
+            length += 1
+        else:
+            break
+    if length > 1:
+        # Remove the matched tags in one shot, once the final length found
+        del tags[: length - 1]
         start = "B-" + label
         end = "L-" + label
-        middle = [f"I-{label}" for _ in range(1, length - 1)]
-        return [start] + middle + [end]
+        # List multiplication is faster than list comprehension for repeated strings
+        if length > 2:
+            middle = ["I-" + label] * (length - 2)
+            return [start] + middle + [end]
+        else:
+            return [start, end]
+    else:
+        return ["U-" + label]
 
 
 def doc_to_biluo_tags(doc: Doc, missing: str = "O"):
