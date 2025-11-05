@@ -64,9 +64,9 @@ def span_finder_score(examples: Iterable[Example], **kwargs) -> Dict[str, Any]:
 
 
 def _char_indices(span: Span) -> Tuple[int, int]:
-    start = span[0].idx
-    end = span[-1].idx + len(span[-1])
-    return start, end
+    # Cache span[-1] to avoid indexing twice
+    last = span[-1]
+    return span[0].idx, last.idx + len(last)
 
 
 class SpanFinder(TrainablePipe):
