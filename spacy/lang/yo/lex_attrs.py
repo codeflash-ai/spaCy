@@ -96,16 +96,25 @@ def strip_accents_text(text):
 
 def like_num(text):
     text = text.replace(",", "").replace(".", "")
-    num_markers = ["dí", "dọ", "lé", "dín", "di", "din", "le", "do"]
+    num_markers = ("dí", "dọ", "lé", "dín", "di", "din", "le", "do")
     if any(mark in text for mark in num_markers):
         return True
-    text = strip_accents_text(text)
-    _num_words_stripped = [strip_accents_text(num) for num in _num_words]
-    if text.isdigit():
+
+    stripped_text = strip_accents_text(text)
+    if stripped_text.isdigit():
         return True
-    if text in _num_words_stripped or text.lower() in _num_words_stripped:
+    if stripped_text.lower() in _get_num_words_stripped():
         return True
     return False
+
+
+# Lazy initialization of stripped number words for O(1) lookup
+def _get_num_words_stripped():
+    if not hasattr(_get_num_words_stripped, "_cache"):
+        _get_num_words_stripped._cache = set(
+            strip_accents_text(num).lower() for num in _num_words
+        )
+    return _get_num_words_stripped._cache
 
 
 LEX_ATTRS = {LIKE_NUM: like_num}
