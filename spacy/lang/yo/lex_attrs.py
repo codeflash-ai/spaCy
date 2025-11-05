@@ -89,9 +89,9 @@ def strip_accents_text(text):
     :param text:
     :return: input string without diacritic adornments on base characters
     """
-    return "".join(
-        c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn"
-    )
+    normalize = unicodedata.normalize
+    category = unicodedata.category
+    return "".join([c for c in normalize("NFD", text) if category(c) != "Mn"])
 
 
 def like_num(text):
