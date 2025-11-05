@@ -80,25 +80,50 @@ _ordinal_words = [
 
 
 def like_num(text):
-    if text.startswith(("+", "-", "±", "~")):
+    # Remove leading '+', '-', '±', or '~'
+    if text and text[0] in "+-±~":
         text = text[1:]
-    text = text.replace(",", "").replace(".", "")
+    # Remove all ',' and '.' in a single pass
+    if "," in text or "." in text:
+        text = text.replace(",", "").replace(".", "")
+    # Fast path for pure digits
     if text.isdigit():
         return True
-    if text.count("/") == 1:
-        num, denom = text.split("/")
-        if num.isdigit() and denom.isdigit():
-            return True
+    # Fast path for fractional numbers with one '/'
+    if "/" in text:
+        if text.count("/") == 1:
+            num, denom = text.split("/")
+            if num.isdigit() and denom.isdigit():
+                return True
 
     text_lower = text.lower()
-    if text_lower in _num_words:
+    # Use set lookup for faster membership test
+    _num_words_set = getattr(like_num, "_num_words_set", None)
+    if _num_words_set is None:
+        # Lazy-initialize and cache
+        from spacy.lang.tn.lex_attrs import _num_words
+
+        like_num._num_words_set = set(_num_words)
+        _num_words_set = like_num._num_words_set
+
+    if text_lower in _num_words_set:
         return True
 
     # CHeck ordinal number
-    if text_lower in _ordinal_words:
+    _ordinal_words_set = getattr(like_num, "_ordinal_words_set", None)
+    if _ordinal_words_set is None:
+        from spacy.lang.tn.lex_attrs import _ordinal_words
+
+        like_num._ordinal_words_set = set(_ordinal_words)
+        _ordinal_words_set = like_num._ordinal_words_set
+
+    if text_lower in _ordinal_words_set:
         return True
-    if text_lower.endswith("th"):
-        if text_lower[:-2].isdigit():
+
+    # Fast check for digit-based ordinals
+    if len(text_lower) > 2 and text_lower.endswith("th"):
+        num_part = text_lower[:-2]
+        if num_part.isdigit():
             return True
 
     return False
