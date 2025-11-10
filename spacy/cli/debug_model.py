@@ -233,10 +233,14 @@ def _print_model(model, print_settings):
 def _print_matrix(value):
     if value is None or isinstance(value, bool):
         return value
-    result = str(value.shape) + " - sample: "
+    # Cache function/method lookups for efficiency
+    shape = value.shape
+    ndim = value.ndim
     sample_matrix = value
-    for d in range(value.ndim - 1):
+    # Use while loop for reduced overhead vs range-based loop
+    d = 0
+    while d < ndim - 1:
         sample_matrix = sample_matrix[0]
-    sample_matrix = sample_matrix[0:5]
-    result = result + str(sample_matrix)
-    return result
+        d += 1
+    # Use string concatenation directly, avoiding + with str
+    return f"{shape} - sample: {sample_matrix[:5]}"
