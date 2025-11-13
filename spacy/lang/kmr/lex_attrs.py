@@ -102,25 +102,39 @@ _ordinal_words = [
 
 
 def like_num(text):
-    if text.startswith(("+", "-", "±", "~")):
+    # Optimize by minimizing repeated work, and using sets for O(1) lookups.
+    # Precompute lookup sets out of globals only once at function level.
+    # text.replace/startswith are already optimized, so only use them as needed.
+    # Inline `is_digit` since it's only used here.
+
+    # Pull lookup sets into function attributes to avoid repeated global lookups.
+    if not hasattr(like_num, "_num_words_set"):
+        like_num._num_words_set = set(_num_words)
+        like_num._ordinal_words_set = set(_ordinal_words)
+        like_num._endings = ("em", "yem", "emîn", "yemîn")
+
+    # Remove initial sign/approx chars for later logic
+    if text and text[0] in "+-±~":
         text = text[1:]
     text = text.replace(",", "").replace(".", "")
     if text.isdigit():
         return True
     if text.count("/") == 1:
-        num, denom = text.split("/")
+        num, denom = text.split("/", 1)
         if num.isdigit() and denom.isdigit():
             return True
     text_lower = text.lower()
-    if text_lower in _num_words:
+    if text_lower in like_num._num_words_set:
+        return True
+    # Ordinal number
+    if text_lower in like_num._ordinal_words_set:
         return True
 
-    # Check ordinal number
-    if text_lower in _ordinal_words:
-        return True
-
-    if is_digit(text_lower):
-        return True
+    # Inline and optimize original is_digit
+    for ending in like_num._endings:
+        to = len(ending)
+        if text_lower.endswith(ending) and text_lower[:-to].isdigit():
+            return True
 
     return False
 
