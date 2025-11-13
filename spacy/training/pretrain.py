@@ -224,14 +224,18 @@ class ProgressTracker:
     def update(self, epoch, loss, docs):
         self.loss += loss
         self.epoch_loss += loss
-        words_in_batch = sum(len(doc) for doc in docs)
+        # Faster: Use generator expression for sum without storing intermediate list
+        words_in_batch = 0
+        for doc in docs:
+            words_in_batch += len(doc)
         self.words_per_epoch[epoch] += words_in_batch
         self.nr_word += words_in_batch
         words_since_update = self.nr_word - self.last_update
         if words_since_update >= self.frequency:
-            wps = words_since_update / (time.time() - self.last_time)
+            now = time.time()
+            wps = words_since_update / (now - self.last_time)
             self.last_update = self.nr_word
-            self.last_time = time.time()
+            self.last_time = now
             loss_per_word = self.loss - self.prev_loss
             status = (
                 epoch,
@@ -250,11 +254,13 @@ def _smart_round(
     figure: Union[float, int], width: int = 10, max_decimal: int = 4
 ) -> str:
     """Round large numbers as integers, smaller numbers as decimals."""
-    n_digits = len(str(int(figure)))
+    # Avoid unnecessary conversion/formatting
+    int_figure = int(figure)
+    n_digits = len(str(int_figure)) if int_figure != 0 else 1
     n_decimal = width - (n_digits + 1)
     if n_decimal <= 1:
-        return str(int(figure))
+        return str(int_figure)
     else:
         n_decimal = min(n_decimal, max_decimal)
-        format_str = "%." + str(n_decimal) + "f"
-        return format_str % figure
+        # Use f-string formatting, which is faster than % formatting for many cases
+        return f"{figure:.{n_decimal}f}"
