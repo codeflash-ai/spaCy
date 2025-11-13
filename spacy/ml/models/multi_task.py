@@ -99,8 +99,8 @@ def get_vectors_loss(ops, docs, prediction, distance):
 
 def get_characters_loss(ops, docs, prediction, nr_char):
     """Compute a loss based on a number of characters predicted from the docs."""
-    target_ids = numpy.vstack([doc.to_utf8_array(nr_char=nr_char) for doc in docs])
-    target_ids = target_ids.reshape((-1,))
+    arrays = [doc.to_utf8_array(nr_char=nr_char) for doc in docs]
+    target_ids = numpy.concatenate(arrays, axis=0).reshape(-1)
     target = ops.asarray(to_categorical(target_ids, n_classes=256), dtype="f")
     target = target.reshape((-1, 256 * nr_char))
     diff = prediction - target
