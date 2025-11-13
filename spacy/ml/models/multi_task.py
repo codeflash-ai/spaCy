@@ -23,6 +23,7 @@ from ...attrs import ID, ORTH
 from ...errors import Errors
 from ...util import OOV_RANK, registry
 from ...vectors import Mode as VectorsMode
+from spacy.vocab import Vocab
 
 if TYPE_CHECKING:
     # This lets us add type hints for mypy etc. without causing circular imports
@@ -208,13 +209,20 @@ def build_masked_language_model(
 class _RandomWords:
     def __init__(self, vocab: "Vocab") -> None:
         # Extract lexeme representations
-        self.words = [lex.text for lex in vocab if lex.prob != 0.0]
-        self.words = self.words[:10000]
+        words = []
+        raw_probs = []
+        count = 0
+        for lex in vocab:
+            if lex.prob != 0.0:
+                words.append(lex.text)
+                raw_probs.append(lex.prob)
+                count += 1
+                if count == 10000:
+                    break
+        self.words = words
 
         # Compute normalized lexeme probabilities
-        probs = [lex.prob for lex in vocab if lex.prob != 0.0]
-        probs = probs[:10000]
-        probs: numpy.ndarray = numpy.exp(numpy.array(probs, dtype="f"))
+        probs: numpy.ndarray = numpy.exp(numpy.array(raw_probs, dtype="f"))
         probs /= probs.sum()
         self.probs = probs
 
@@ -223,9 +231,8 @@ class _RandomWords:
 
     def next(self) -> str:
         if not self._cache:
-            self._cache.extend(
-                numpy.random.choice(len(self.words), 10000, p=self.probs)
-            )
+            indices = numpy.random.choice(len(self.words), 10000, p=self.probs)
+            self._cache.extend(indices.tolist())
         index = self._cache.pop()
         return self.words[index]
 
