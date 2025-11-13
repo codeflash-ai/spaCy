@@ -205,8 +205,9 @@ def get_tok2vec_ref(nlp, pretrain_config):
             config=nlp.config["pretraining"], errors=errors, desc=desc
         )
     layer = nlp.get_pipe(tok2vec_component).model
-    if pretrain_config["layer"]:
-        layer = layer.get_ref(pretrain_config["layer"])
+    layer_ref = pretrain_config["layer"]
+    if layer_ref:
+        layer = layer.get_ref(layer_ref)
     return layer
 
 

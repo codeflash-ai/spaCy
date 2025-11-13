@@ -71,6 +71,8 @@ from .util import (
 from .vectors import BaseVectors
 from .vocab import Vocab, create_vocab
 
+_PIPELINE_FACTORIES_REGISTERED = False
+
 PipeCallable = Callable[[Doc], Doc]
 
 
@@ -158,7 +160,7 @@ class Language:
         vocab: Union[Vocab, bool] = True,
         *,
         max_length: int = 10**6,
-        meta: Dict[str, Any] = {},
+        meta: Optional[Dict[str, Any]] = None,
         create_tokenizer: Optional[Callable[["Language"], Callable[[str], Doc]]] = None,
         create_vectors: Optional[Callable[["Vocab"], BaseVectors]] = None,
         batch_size: int = 1000,
@@ -183,16 +185,16 @@ class Language:
 
         DOCS: https://spacy.io/api/language#init
         """
-        from .pipeline.factories import register_factories
+        global _PIPELINE_FACTORIES_REGISTERED
+        if not _PIPELINE_FACTORIES_REGISTERED:
+            from .pipeline.factories import register_factories
 
-        register_factories()
-        # We're only calling this to import all factories provided via entry
-        # points. The factory decorator applied to these functions takes care
-        # of the rest.
-        util.registry._entry_point_factories.get_all()
+            register_factories()
+            util.registry._entry_point_factories.get_all()
+            _PIPELINE_FACTORIES_REGISTERED = True
 
         self._config = DEFAULT_CONFIG.merge(self.default_config)
-        self._meta = dict(meta)
+        self._meta = dict(meta) if meta is not None else {}
         self._path = None
         self._optimizer: Optional[Optimizer] = None
         # Component meta and configs are only needed on the instance
@@ -202,7 +204,7 @@ class Language:
         if not isinstance(vocab, Vocab) and vocab is not True:
             raise ValueError(Errors.E918.format(vocab=vocab, vocab_type=type(Vocab)))
         if vocab is True:
-            vectors_name = meta.get("vectors", {}).get("name")
+            vectors_name = self._meta.get("vectors", {}).get("name")
             vocab = create_vocab(self.lang, self.Defaults, vectors_name=vectors_name)
             if not create_vectors:
                 vectors_cfg = {"vectors": self._config["nlp"]["vectors"]}
@@ -1519,8 +1521,7 @@ class Language:
         disable: Iterable[str] = ...,
         component_cfg: Optional[Dict[str, Dict[str, Any]]] = ...,
         n_process: int = ...,
-    ) -> Iterator[Doc]:
-        ...
+    ) -> Iterator[Doc]: ...
 
     @overload
     def pipe(  # noqa: F811
@@ -1532,8 +1533,7 @@ class Language:
         disable: Iterable[str] = ...,
         component_cfg: Optional[Dict[str, Dict[str, Any]]] = ...,
         n_process: int = ...,
-    ) -> Iterator[Tuple[Doc, _AnyContext]]:
-        ...
+    ) -> Iterator[Tuple[Doc, _AnyContext]]: ...
 
     def pipe(  # noqa: F811
         self,
@@ -1641,7 +1641,7 @@ class Language:
         batch_size: int,
     ) -> Iterator[Doc]:
         def prepare_input(
-            texts: Iterable[Union[str, Doc]]
+            texts: Iterable[Union[str, Doc]],
         ) -> Iterable[Tuple[Union[str, bytes], _AnyContext]]:
             # Serialize Doc inputs to bytes to avoid incurring pickling
             # overhead when they are passed to child processes. Also yield
@@ -1943,9 +1943,9 @@ class Language:
                         )
                     if "_sourced_vectors_hashes" not in nlp.meta:
                         nlp.meta["_sourced_vectors_hashes"] = {}
-                    nlp.meta["_sourced_vectors_hashes"][
-                        pipe_name
-                    ] = source_nlp_vectors_hashes[model]
+                    nlp.meta["_sourced_vectors_hashes"][pipe_name] = (
+                        source_nlp_vectors_hashes[model]
+                    )
                     # Delete from cache if listeners were replaced
                     if listeners_replaced:
                         del source_nlps[model]
