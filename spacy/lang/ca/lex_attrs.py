@@ -46,11 +46,18 @@ def like_num(text):
     text = text.replace(",", "").replace(".", "")
     if text.isdigit():
         return True
-    if text.count("/") == 1:
-        num, denom = text.split("/")
-        if num.isdigit() and denom.isdigit():
+    if "/" in text:
+        parts = text.split("/")
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
             return True
-    if text in _num_words:
+    # Using a set lookup for O(1) instead of O(n) list lookup
+    # _num_words_set is a memoized static attribute to avoid recreating
+    # the set on every function call
+    if not hasattr(like_num, "_num_words_set"):
+        from spacy.lang.ca.lex_attrs import _num_words
+
+        like_num._num_words_set = set(_num_words)
+    if text in like_num._num_words_set:
         return True
     return False
 
