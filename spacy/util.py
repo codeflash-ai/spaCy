@@ -18,25 +18,9 @@ from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
 from types import ModuleType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Generator,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
-    NoReturn,
-    Optional,
-    Pattern,
-    Set,
-    Tuple,
-    Type,
-    Union,
-    cast,
-)
+from typing import (TYPE_CHECKING, Any, Callable, Dict, Generator, Iterable,
+                    Iterator, List, Mapping, NoReturn, Optional, Pattern, Set,
+                    Tuple, Type, Union, cast)
 
 import catalogue
 import numpy
@@ -46,15 +30,8 @@ from catalogue import Registry, RegistryError
 from packaging.requirements import Requirement
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
-from thinc.api import (
-    Adam,
-    Config,
-    ConfigValidationError,
-    Model,
-    NumpyOps,
-    Optimizer,
-    get_current_ops,
-)
+from thinc.api import (Adam, Config, ConfigValidationError, Model, NumpyOps,
+                       Optimizer, get_current_ops)
 
 try:
     import cupy.random
@@ -657,7 +634,7 @@ def load_model_from_config(
 
 
 def get_sourced_components(
-    config: Union[Dict[str, Any], Config]
+    config: Union[Dict[str, Any], Config],
 ) -> Dict[str, Dict[str, Any]]:
     """RETURNS (List[str]): All sourced components in the original config,
     e.g. {"source": "en_core_web_sm"}. If the config contains a key
@@ -1552,9 +1529,9 @@ def dot_to_dict(values: Dict[str, Any]) -> Dict[str, dict]:
     for key, value in values.items():
         path = result
         parts = key.lower().split(".")
-        for i, item in enumerate(parts):
-            is_last = i == len(parts) - 1
-            path = path.setdefault(item, value if is_last else {})
+        for item in parts[:-1]:
+            path = path.setdefault(item, {})
+        path.setdefault(parts[-1], value)
     return result
 
 
