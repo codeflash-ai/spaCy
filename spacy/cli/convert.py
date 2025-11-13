@@ -18,6 +18,10 @@ from ..training.converters import (
 )
 from ._util import Arg, Opt, app, walk_directory
 
+_IOB_RE = re.compile(r"\S+\|(O|[IB]-\S+)")
+
+_NER_RE = re.compile(r"\S+\s+(O|[IB]-\S+)$")
+
 # Converters are matched by file extension except for ner/iob, which are
 # matched by file extension and content. To add a converter, add a new
 # entry to this dict with the file extension mapped to the converter function
@@ -178,15 +182,16 @@ def _write_docs_to_file(data: Any, output_file: Path, output_type: str) -> None:
 
 def autodetect_ner_format(input_data: str) -> Optional[str]:
     # guess format from the first 20 lines
-    lines = input_data.split("\n")[:20]
+    # Split at most 20 times, then take 20 elements (avoids splitting entire string)
+    lines = input_data.split("\n", 20)
+    if len(lines) > 20:
+        lines = lines[:20]
     format_guesses = {"ner": 0, "iob": 0}
-    iob_re = re.compile(r"\S+\|(O|[IB]-\S+)")
-    ner_re = re.compile(r"\S+\s+(O|[IB]-\S+)$")
     for line in lines:
         line = line.strip()
-        if iob_re.search(line):
+        if _IOB_RE.search(line):
             format_guesses["iob"] += 1
-        if ner_re.search(line):
+        if _NER_RE.search(line):
             format_guesses["ner"] += 1
     if format_guesses["iob"] == 0 and format_guesses["ner"] > 0:
         return "ner"
